@@ -8,7 +8,6 @@ interface IHashMap<K, V> {
   has: (key: K) => boolean;
   getKeys: () => Position[];
 }
-
 export class HashMap<K, V> implements IHashMap<K, V> {
   store: Map<String, V>;
   constructor() {
@@ -49,6 +48,7 @@ interface IHashSet<K> {
   add: (key: K) => void;
   has: (key: K) => boolean;
   delete: (key: K) => void;
+  clear: () => IHashSet<K>;
 }
 
 export class HashSet<K> implements IHashSet<K> {
@@ -67,5 +67,9 @@ export class HashSet<K> implements IHashSet<K> {
   delete = (key: K) => {
     let modifiedKey = JSON.stringify(key);
     this.store.delete(modifiedKey);
+  };
+  clear = () => {
+    this.store.clear();
+    return this;
   };
 }

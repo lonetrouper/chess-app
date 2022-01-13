@@ -1,4 +1,4 @@
-import { positions } from "@mui/system";
+import { ChessContext } from "../components/ChessComponent";
 import { HashMap, HashSet } from "./CustomDataStructures";
 
 export const columns = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -18,7 +18,8 @@ export interface ChessPiece {
     x: number,
     y: number,
     occupiedPositionsWhite: HashMap<Position, chessPieceNameType>,
-    occupiedPositionsBlack: HashMap<Position, chessPieceNameType>
+    occupiedPositionsBlack: HashMap<Position, chessPieceNameType>,
+    prevMove?: any
   ): Position[];
   getIcon: () => string;
 }
@@ -51,14 +52,21 @@ class Pawn implements ChessPiece {
   ) {
     let output = [];
     if (this.pieceColor === "WHITE") {
-      let front: Position = { x: x - 1, y };
+      let front: Position = { x: x - 1, y: y };
       let diagonals: Position[] = [
-        { x: x - 1, y: y - 1 },
+        { x: x - 1, y: y + 1 },
         { x: x - 1, y: y - 1 },
       ];
       if (!occupiedPositionsWhite.has(front)) output.push(front);
       for (let i = 0; i < diagonals.length; i++) {
         if (occupiedPositionsBlack.has(diagonals[i])) output.push(diagonals[i]);
+      }
+      if (
+        x - 2 >= 0 &&
+        !occupiedPositionsWhite.has({ x: x - 2, y }) &&
+        x === 6
+      ) {
+        output.push({ x: x - 2, y });
       }
     } else {
       let front: Position = { x: x + 1, y };
@@ -69,6 +77,13 @@ class Pawn implements ChessPiece {
       if (!occupiedPositionsBlack.has(front)) output.push(front);
       for (let i = 0; i < diagonals.length; i++) {
         if (occupiedPositionsWhite.has(diagonals[i])) output.push(diagonals[i]);
+      }
+      if (
+        x + 2 < 8 &&
+        !occupiedPositionsBlack.has({ x: x + 2, y }) &&
+        x === 1
+      ) {
+        output.push({ x: x + 2, y });
       }
     }
     return output;
@@ -96,37 +111,68 @@ class Knight implements ChessPiece {
     let majorMovement = [-2, 2];
     let minorMovement = [1, -1];
     if (this.pieceColor === "WHITE") {
-      for (let i = 0; i < majorMovement.length; i++) {
-        for (let j = 0; j < minorMovement.length; j++) {
-          if (
-            x + majorMovement[i] >= 0 &&
-            x + majorMovement[i] < 8 &&
-            y + minorMovement[j] >= 0 &&
-            y + minorMovement[j] < 8
-          ) {
-            let pos: Position = {
-              x: x + majorMovement[i],
-              y: y + majorMovement[j],
-            };
-            if (!occupiedPositionsWhite.has(pos)) output.push(pos);
-          }
-        }
-      }
+      output.push(
+        ...this.getMovementHelper(
+          majorMovement,
+          minorMovement,
+          x,
+          y,
+          occupiedPositionsWhite
+        )
+      );
+      output.push(
+        ...this.getMovementHelper(
+          minorMovement,
+          majorMovement,
+          x,
+          y,
+          occupiedPositionsWhite
+        )
+      );
     } else {
-      for (let i = 0; i < majorMovement.length; i++) {
-        for (let j = 0; j < minorMovement.length; j++) {
-          if (
-            x + majorMovement[i] >= 0 &&
-            x + majorMovement[i] < 8 &&
-            y + minorMovement[j] >= 0 &&
-            y + minorMovement[j] < 8
-          ) {
-            let pos: Position = {
-              x: x + majorMovement[i],
-              y: y + majorMovement[j],
-            };
-            if (!occupiedPositionsBlack.has(pos)) output.push(pos);
-          }
+      output.push(
+        ...this.getMovementHelper(
+          majorMovement,
+          minorMovement,
+          x,
+          y,
+          occupiedPositionsBlack
+        )
+      );
+      output.push(
+        ...this.getMovementHelper(
+          minorMovement,
+          majorMovement,
+          x,
+          y,
+          occupiedPositionsBlack
+        )
+      );
+    }
+    return output;
+  }
+
+  getMovementHelper(
+    majorMovement: number[],
+    minorMovement: number[],
+    x: number,
+    y: number,
+    opponentOccupiedPositions: HashMap<Position, chessPieceNameType>
+  ): Position[] {
+    let output: Position[] = [];
+    for (let i = 0; i < minorMovement.length; i++) {
+      for (let j = 0; j < majorMovement.length; j++) {
+        if (
+          x + minorMovement[i] >= 0 &&
+          x + minorMovement[i] < 8 &&
+          y + majorMovement[j] >= 0 &&
+          y + majorMovement[j] < 8
+        ) {
+          let pos: Position = {
+            x: x + minorMovement[i],
+            y: y + majorMovement[j],
+          };
+          if (!opponentOccupiedPositions.has(pos)) output.push(pos);
         }
       }
     }
@@ -161,7 +207,7 @@ class Rook implements ChessPiece {
           if (!occupiedPositionsWhite.has(pos)) {
             output.push(pos);
             if (occupiedPositionsBlack.has(pos)) break;
-          }
+          } else break;
           currX += direction[i];
         }
         let currY = y + direction[i];
@@ -170,7 +216,7 @@ class Rook implements ChessPiece {
           if (!occupiedPositionsWhite.has(pos)) {
             output.push(pos);
             if (occupiedPositionsBlack.has(pos)) break;
-          }
+          } else break;
           currY += direction[i];
         }
       }
@@ -224,11 +270,12 @@ class Bishop implements ChessPiece {
       for (let j = 0; j < colDirection.length; j++) {
         let tempX = x + rowDirection[i];
         let tempY = y + colDirection[j];
-        while (tempX >= 0 && tempX < 8 && tempY >= 0 && tempY < 7) {
+        while (tempX >= 0 && tempX < 8 && tempY >= 0 && tempY < 8) {
           let pos: Position = { x: tempX, y: tempY };
           if (this.pieceColor === "WHITE") {
-            if (occupiedPositionsWhite.has(pos)) break;
-            else {
+            if (occupiedPositionsWhite.has(pos)) {
+              break;
+            } else {
               output.push(pos);
               if (occupiedPositionsBlack.has(pos)) break;
             }
@@ -244,6 +291,7 @@ class Bishop implements ChessPiece {
         }
       }
     }
+
     return output;
   }
   getIcon() {
@@ -262,7 +310,7 @@ class Queen implements ChessPiece {
     this.pieceName = "QUEEN";
     if (pieceColor === "WHITE") {
       this.rook = new Rook("WHITE");
-      this.bishop = new Bishop("BLACK");
+      this.bishop = new Bishop("WHITE");
     } else {
       this.rook = new Rook("BLACK");
       this.bishop = new Bishop("BLACK");
@@ -483,18 +531,33 @@ export const pieceNameToClassMapWhite: Map<chessPieceNameType, ChessPiece> =
     ["KING", WhiteKing],
   ]);
 
-export const resetBoard = (
-  occupiedPositionsWhite: HashMap<Position, chessPieceNameType>,
-  occupiedPositionsBlack: HashMap<Position, chessPieceNameType>
-) => {
-  occupiedPositionsWhite = new HashMap();
-  occupiedPositionsBlack = new HashMap();
-  for (let i = 0; i < 8; i++) {
-    let pos1: Position = { x: 6, y: i };
-    occupiedPositionsWhite.set(pos1, "WhitePawn");
-    let pos2: Position = { x: 1, y: i };
-    occupiedPositionsBlack.set(pos2, "BlackPawn");
-  }
+const createEmptyMove = (): MoveInfo => ({
+  endPos: null,
+  currTurn: null,
+  nextMove: null,
+  prevMove: null,
+  pieceCaptured: null,
+  pieceName: null,
+  startPos: null,
+});
+
+export const resetBoard = (): ChessContext => {
+  let startMove = createEmptyMove();
+  let currMove = createEmptyMove();
+  startMove.nextMove = currMove;
+  currMove.prevMove = startMove;
+  let initialState: ChessContext = {
+    occupiedPositionsWhite: resetWhitePieces(),
+    occupiedPositionsBlack: resetBlackPieces(),
+    blackKingPos: { x: 0, y: 4 },
+    whiteKingPos: { x: 7, y: 4 },
+    startMove: startMove,
+    currMove: currMove,
+    selectedPos: null,
+    currTurn: "WHITE",
+    possibleMoves: new HashSet<Position>(),
+  };
+  return initialState;
 };
 
 export const resetWhitePieces = () => {
@@ -547,4 +610,12 @@ export const resetBlackPieces = () => {
   return occupiedPositionsBlack;
 };
 
-interface TilePieceInfo {}
+export interface MoveInfo {
+  pieceName: chessPieceNameType | null;
+  currTurn: allPieceColorType | null;
+  startPos: Position | null;
+  endPos: Position | null;
+  pieceCaptured: chessPieceNameType | null;
+  nextMove: MoveInfo | null;
+  prevMove: MoveInfo | null;
+}
