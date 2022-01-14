@@ -12,8 +12,8 @@ import { ColorOptions } from "./ChessComponent";
 export interface ChessTileProps {
   x: number;
   y: number;
-  pieceName: chessPieceNameType | undefined;
-  pieceColor: allPieceColorType | undefined;
+  pieceName: chessPieceNameType | null;
+  pieceColor: allPieceColorType | null;
   tileBackgroundColor: ColorOptions;
   clickHandler: (pos: Position) => void;
 }
@@ -34,9 +34,9 @@ const getColor = (colorOption: ColorOptions) => {
       return "#FFCE9E";
     case ColorOptions.DARK:
       return "#D18B47";
-    case ColorOptions.LIGHT_HIGHLITED:
+    case ColorOptions.LIGHT_HIGHLIGHTED:
       return "#819669";
-    case ColorOptions.DARK_HIGHLIGTED:
+    case ColorOptions.DARK_HIGHLIGHTED:
       return "#646D40";
   }
 };

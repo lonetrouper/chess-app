@@ -7,8 +7,8 @@ import {
 } from "../model/ChessModels";
 
 export interface ChessIconProps {
-  pieceColor: allPieceColorType | undefined;
-  pieceName: chessPieceNameType | undefined;
+  pieceColor: allPieceColorType | null;
+  pieceName: chessPieceNameType | null;
 }
 
 const ChessIcon: FunctionComponent<ChessIconProps> = (
@@ -18,10 +18,7 @@ const ChessIcon: FunctionComponent<ChessIconProps> = (
 };
 
 const iconHelper = (chessIconProps: ChessIconProps): any => {
-  if (
-    chessIconProps.pieceColor !== undefined &&
-    chessIconProps.pieceName !== undefined
-  ) {
+  if (chessIconProps.pieceColor !== null && chessIconProps.pieceName !== null) {
     let className = getIconUtil(
       chessIconProps.pieceName,
       chessIconProps.pieceColor
@@ -35,11 +32,11 @@ const getIconUtil = (
   pieceColor: allPieceColorType
 ) => {
   if (pieceColor === "BLACK") {
-    let pieceImpl = pieceNameToClassMapBlack.get(pieceName);
-    return pieceImpl?.getIcon();
+    let pieceImpl = pieceNameToClassMapBlack[pieceName];
+    return pieceImpl.getIcon();
   } else {
-    let pieceImpl = pieceNameToClassMapWhite.get(pieceName);
-    return pieceImpl?.getIcon();
+    let pieceImpl = pieceNameToClassMapWhite[pieceName];
+    return pieceImpl.getIcon();
   }
 };
 
