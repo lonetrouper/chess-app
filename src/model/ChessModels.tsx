@@ -44,7 +44,7 @@ class Pawn implements ChessPiece {
   }
   availableMovements(x: number, y: number, boardState: SquareInfo[][]) {
     let output = [];
-    if (this.pieceColor === "WHITE") {
+    if (this.pieceColor === "BLACK") {
       let front: Position = { x: x - 1, y: y };
       let diagonals: Position[] = [
         { x: x - 1, y: y + 1 },
@@ -57,7 +57,7 @@ class Pawn implements ChessPiece {
         x - 1 >= 0 &&
         y + 1 < 8 &&
         boardState[x - 1][y + 1].pieceName !== null &&
-        boardState[x - 1][y + 1].pieceColor === "BLACK"
+        boardState[x - 1][y + 1].pieceColor === "WHITE"
       ) {
         output.push({ x: x - 1, y: y + 1 });
       }
@@ -65,7 +65,7 @@ class Pawn implements ChessPiece {
         x - 1 >= 0 &&
         y - 1 >= 0 &&
         boardState[x - 1][y - 1].pieceName !== null &&
-        boardState[x - 1][y - 1].pieceColor === "BLACK"
+        boardState[x - 1][y - 1].pieceColor === "WHITE"
       ) {
         output.push({ x: x - 1, y: y + 1 });
       }
@@ -89,7 +89,7 @@ class Pawn implements ChessPiece {
         x + 1 < 8 &&
         y + 1 < 8 &&
         boardState[x + 1][y + 1].pieceName !== null &&
-        boardState[x + 1][y + 1].pieceColor === "WHITE"
+        boardState[x + 1][y + 1].pieceColor === "BLACK"
       ) {
         output.push({ x: x + 1, y: y + 1 });
       }
@@ -97,7 +97,7 @@ class Pawn implements ChessPiece {
         x + 1 < 8 &&
         y - 1 >= 0 &&
         boardState[x + 1][y - 1].pieceName !== null &&
-        boardState[x + 1][y - 1].pieceColor === "WHITE"
+        boardState[x + 1][y - 1].pieceColor === "BLACK"
       ) {
         output.push({ x: x + 1, y: y - 1 });
       }
@@ -588,8 +588,8 @@ export const resetBoard = (): SquareInfo[][] => {
 
 const resetPawns = (input: SquareInfo[][]) => {
   for (let i = 0; i < 8; i++) {
-    input[1][i] = { ...input[1][i], pieceColor: "BLACK", pieceName: "PAWN" };
-    input[6][i] = { ...input[6][i], pieceColor: "WHITE", pieceName: "PAWN" };
+    input[1][i] = { ...input[1][i], pieceColor: "WHITE", pieceName: "PAWN" };
+    input[6][i] = { ...input[6][i], pieceColor: "BLACK", pieceName: "PAWN" };
   }
 };
 

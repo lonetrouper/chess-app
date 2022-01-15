@@ -110,102 +110,130 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
     return rowOutput;
   };
 
-  const clickHandler = (currPos: Position) => {
-    let modifiedMoveState: moveState | null = null;
-    if (moveState.isWhiteTurn) {
-      if (moveState.availableMoves.length === 0) {
-        let selectedSquare: SquareInfo =
-          moveState.chessBoard[currPos.x][currPos.y];
-        if (selectedSquare.pieceColor === "WHITE") {
-          if (selectedSquare.pieceName !== null) {
-            let pieceName: chessPieceNameType = selectedSquare.pieceName;
-            let possibleMoves = pieceNameToClassMapWhite[
-              pieceName
-            ].availableMovements(currPos.x, currPos.y, moveState.chessBoard);
-
-            modifiedMoveState = {
-              ...moveState,
-              availableMoves: possibleMoves !== undefined ? possibleMoves : [],
-              selectedTile: selectedSquare,
-            };
-          }
-        }
+  const getAvailableMovesHelper = (prevState: moveState, currPos: Position) => {
+    if (prevState.isWhiteTurn) {
+      let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
+      if (currSquare.pieceName !== null && currSquare.pieceColor === "WHITE") {
+        let pieceName: chessPieceNameType = currSquare.pieceName;
+        let possibleMoves = pieceNameToClassMapWhite[
+          pieceName
+        ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+        return possibleMoves;
       } else {
-        for (let pos of moveState.availableMoves) {
-          if (pos.x === currPos.x && pos.y === currPos.y) {
-            modifiedMoveState = registerMove(currPos);
-          }
-        }
+        return [];
       }
     } else {
-      console.log("here");
-      if (moveState.availableMoves.length === 0) {
-        let selectedSquare: SquareInfo =
-          moveState.chessBoard[currPos.x][currPos.y];
-        if (selectedSquare.pieceColor === "BLACK") {
-          if (selectedSquare.pieceName !== null) {
-            let pieceName: chessPieceNameType = selectedSquare.pieceName;
-            let possibleMoves = pieceNameToClassMapBlack[
-              pieceName
-            ].availableMovements(currPos.x, currPos.y, moveState.chessBoard);
-            modifiedMoveState = {
-              ...moveState,
-              availableMoves: possibleMoves !== undefined ? possibleMoves : [],
-              selectedTile: selectedSquare,
-            };
-          }
-        }
+      let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
+      if (currSquare.pieceName !== null && currSquare.pieceColor === "BLACK") {
+        let pieceName: chessPieceNameType = currSquare.pieceName;
+        let possibleMoves = pieceNameToClassMapBlack[
+          pieceName
+        ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+        return possibleMoves;
       } else {
-        for (let pos of moveState.availableMoves) {
-          if (pos.x === currPos.x && pos.y === currPos.y) {
-            modifiedMoveState = registerMove(currPos);
-          }
-        }
+        return [];
       }
-    }
-    console.log("difference", moveState, modifiedMoveState);
-    if (modifiedMoveState !== null) {
-      setMoveState(modifiedMoveState);
     }
   };
 
-  const registerMove = (currPos: Position) => {
-    let currSquare = moveState.chessBoard[currPos.x][currPos.y];
+  const clickHandler = (currPos: Position) => {
+    setMoveState((prevState) => {
+      if (prevState.isWhiteTurn) {
+        if (prevState.availableMoves.length === 0) {
+          let selectedSquare: SquareInfo =
+            prevState.chessBoard[currPos.x][currPos.y];
+          if (selectedSquare.pieceColor === "WHITE") {
+            if (selectedSquare.pieceName !== null) {
+              let pieceName: chessPieceNameType = selectedSquare.pieceName;
+              let possibleMoves = pieceNameToClassMapWhite[
+                pieceName
+              ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+
+              return {
+                ...prevState,
+                availableMoves:
+                  possibleMoves !== undefined ? possibleMoves : [],
+                selectedTile: selectedSquare,
+              };
+            }
+          }
+        } else {
+          for (let pos of prevState.availableMoves) {
+            if (pos.x === currPos.x && pos.y === currPos.y) {
+              return registerMove(currPos, prevState);
+            }
+          }
+          return { ...prevState, availableMoves: [] };
+        }
+      } else {
+        console.log("here");
+        if (prevState.availableMoves.length === 0) {
+          let selectedSquare: SquareInfo =
+            prevState.chessBoard[currPos.x][currPos.y];
+          if (selectedSquare.pieceColor === "BLACK") {
+            if (selectedSquare.pieceName !== null) {
+              let pieceName: chessPieceNameType = selectedSquare.pieceName;
+              let possibleMoves = pieceNameToClassMapBlack[
+                pieceName
+              ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+              return {
+                ...prevState,
+                availableMoves:
+                  possibleMoves !== undefined ? possibleMoves : [],
+                selectedTile: selectedSquare,
+              };
+            }
+          }
+        } else {
+          for (let pos of prevState.availableMoves) {
+            if (pos.x === currPos.x && pos.y === currPos.y) {
+              return registerMove(currPos, prevState);
+            }
+          }
+          return { ...prevState, availableMoves: [] };
+        }
+      }
+      return prevState;
+    });
+  };
+
+  const registerMove = (currPos: Position, prevState: moveState) => {
+    let currSquare = prevState.chessBoard[currPos.x][currPos.y];
     let capturedPiece: chessPieceNameType | null = null;
     if (currSquare.pieceColor !== null && currSquare.pieceName !== null) {
       capturedPiece = currSquare.pieceName;
     }
 
-    let modifiedPositions = JSON.parse(JSON.stringify(moveState.chessBoard));
-    if (moveState.selectedTile !== null) {
-      modifiedPositions[moveState.selectedTile.x][
-        moveState.selectedTile.y
+    let modifiedPositions = JSON.parse(JSON.stringify(prevState.chessBoard));
+    if (prevState.selectedTile !== null) {
+      modifiedPositions[prevState.selectedTile.x][
+        prevState.selectedTile.y
       ].pieceColor = null;
-      modifiedPositions[moveState.selectedTile.x][
-        moveState.selectedTile.y
+      modifiedPositions[prevState.selectedTile.x][
+        prevState.selectedTile.y
       ].pieceName = null;
     }
     modifiedPositions[currPos.x][currPos.y].pieceColor =
-      moveState.selectedTile?.pieceColor === undefined
+      prevState.selectedTile?.pieceColor === undefined
         ? null
-        : moveState.selectedTile.pieceColor;
+        : prevState.selectedTile.pieceColor;
     modifiedPositions[currPos.x][currPos.y].pieceName =
-      moveState.selectedTile?.pieceName === undefined
+      prevState.selectedTile?.pieceName === undefined
         ? null
-        : moveState.selectedTile.pieceName;
-    let allMoves = JSON.parse(JSON.stringify(moveState.chessBoard));
+        : prevState.selectedTile.pieceName;
+    let allMoves = JSON.parse(JSON.stringify(prevState.allMoves));
     allMoves.push({
-      isWhiteTurn: moveState.isWhiteTurn,
+      isWhiteTurn: prevState.isWhiteTurn,
       endPos: currPos,
       pieceCaptured: capturedPiece,
-      pieceName: moveState.selectedTile?.pieceName,
+      pieceName: prevState.selectedTile?.pieceName,
     });
     let output = {
-      ...moveState,
+      ...prevState,
       allMoves: allMoves,
       availableMoves: [],
-      isWhiteTurn: moveState.isWhiteTurn ? false : true,
-      moveNumber: moveState.moveNumber + 1,
+      isWhiteTurn: prevState.isWhiteTurn ? false : true,
+      moveNumber: prevState.moveNumber + 1,
       selectedTile: null,
       chessBoard: modifiedPositions,
     } as moveState;
