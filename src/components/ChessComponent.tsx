@@ -136,35 +136,35 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
     }
   };
 
+  const currPosInAvailableMoves = (prevState: moveState, currPos: Position) => {
+    for (let pos of moveState.availableMoves) {
+      if (pos.x === currPos.x && pos.y === currPos.y) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const clickHandler = (currPos: Position) => {
     setMoveState((prevState) => {
       if (prevState.isWhiteTurn) {
+        let possibleMoves: Position[];
+        let selectedTile: SquareInfo;
         if (prevState.availableMoves.length === 0) {
-          let selectedSquare: SquareInfo =
-            prevState.chessBoard[currPos.x][currPos.y];
-          if (selectedSquare.pieceColor === "WHITE") {
-            if (selectedSquare.pieceName !== null) {
-              let pieceName: chessPieceNameType = selectedSquare.pieceName;
-              let possibleMoves = pieceNameToClassMapWhite[
-                pieceName
-              ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
-
-              return {
-                ...prevState,
-                availableMoves:
-                  possibleMoves !== undefined ? possibleMoves : [],
-                selectedTile: selectedSquare,
-              };
-            }
-          }
+          possibleMoves = getAvailableMovesHelper(prevState, currPos);
+          selectedTile = prevState.chessBoard[currPos.x][currPos.y];
         } else {
-          for (let pos of prevState.availableMoves) {
-            if (pos.x === currPos.x && pos.y === currPos.y) {
-              return registerMove(currPos, prevState);
-            }
+          if (currPosInAvailableMoves(prevState, currPos)) {
+            return registerMove(currPos, prevState);
           }
-          return { ...prevState, availableMoves: [] };
+          possibleMoves = getAvailableMovesHelper(prevState, currPos);
+          selectedTile = prevState.chessBoard[currPos.x][currPos.y];
         }
+        return {
+          ...prevState,
+          availableMoves: possibleMoves,
+          selectedTile: selectedTile,
+        };
       } else {
         console.log("here");
         if (prevState.availableMoves.length === 0) {
