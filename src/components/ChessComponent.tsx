@@ -4,6 +4,7 @@ import "../Styles/ChessStyles.css";
 import { Box, Grid } from "@mui/material";
 import {
   allPieceColorType,
+  ChessPiece,
   chessPieceNameType,
   createEmptyMove,
   MoveInfo,
@@ -115,9 +116,21 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
       let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
       if (currSquare.pieceName !== null && currSquare.pieceColor === "WHITE") {
         let pieceName: chessPieceNameType = currSquare.pieceName;
-        let possibleMoves = pieceNameToClassMapWhite[
-          pieceName
-        ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+        let possibleMoves: Position[];
+        if (pieceName === "PAWN") {
+          possibleMoves = pieceNameToClassMapWhite[
+            pieceName
+          ].availableMovements(
+            currPos.x,
+            currPos.y,
+            prevState.chessBoard,
+            prevState.allMoves[prevState.moveNumber - 1]
+          );
+        } else {
+          possibleMoves = pieceNameToClassMapWhite[
+            pieceName
+          ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+        }
         return possibleMoves;
       } else {
         return [];
@@ -126,9 +139,22 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
       let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
       if (currSquare.pieceName !== null && currSquare.pieceColor === "BLACK") {
         let pieceName: chessPieceNameType = currSquare.pieceName;
-        let possibleMoves = pieceNameToClassMapBlack[
-          pieceName
-        ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+        let possibleMoves: Position[];
+        if (pieceName === "PAWN") {
+          possibleMoves = pieceNameToClassMapBlack[
+            pieceName
+          ].availableMovements(
+            currPos.x,
+            currPos.y,
+            prevState.chessBoard,
+            prevState.allMoves[prevState.moveNumber - 1]
+          );
+        } else {
+          possibleMoves = pieceNameToClassMapBlack[
+            pieceName
+          ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
+        }
+
         return possibleMoves;
       } else {
         return [];
@@ -147,53 +173,21 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
 
   const clickHandler = (currPos: Position) => {
     setMoveState((prevState) => {
-      if (prevState.isWhiteTurn) {
-        let possibleMoves: Position[];
-        let selectedTile: SquareInfo;
-        if (prevState.availableMoves.length === 0) {
-          possibleMoves = getAvailableMovesHelper(prevState, currPos);
-          selectedTile = prevState.chessBoard[currPos.x][currPos.y];
-        } else {
-          if (currPosInAvailableMoves(prevState, currPos)) {
-            return registerMove(currPos, prevState);
-          }
-          possibleMoves = getAvailableMovesHelper(prevState, currPos);
-          selectedTile = prevState.chessBoard[currPos.x][currPos.y];
-        }
+      if (currPosInAvailableMoves(prevState, currPos)) {
+        return registerMove(currPos, prevState);
+      } else {
+        let possibleMoves: Position[] = getAvailableMovesHelper(
+          prevState,
+          currPos
+        );
+        let selectedTile: SquareInfo =
+          prevState.chessBoard[currPos.x][currPos.y];
         return {
           ...prevState,
           availableMoves: possibleMoves,
           selectedTile: selectedTile,
         };
-      } else {
-        console.log("here");
-        if (prevState.availableMoves.length === 0) {
-          let selectedSquare: SquareInfo =
-            prevState.chessBoard[currPos.x][currPos.y];
-          if (selectedSquare.pieceColor === "BLACK") {
-            if (selectedSquare.pieceName !== null) {
-              let pieceName: chessPieceNameType = selectedSquare.pieceName;
-              let possibleMoves = pieceNameToClassMapBlack[
-                pieceName
-              ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
-              return {
-                ...prevState,
-                availableMoves:
-                  possibleMoves !== undefined ? possibleMoves : [],
-                selectedTile: selectedSquare,
-              };
-            }
-          }
-        } else {
-          for (let pos of prevState.availableMoves) {
-            if (pos.x === currPos.x && pos.y === currPos.y) {
-              return registerMove(currPos, prevState);
-            }
-          }
-          return { ...prevState, availableMoves: [] };
-        }
       }
-      return prevState;
     });
   };
 
@@ -206,6 +200,7 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
 
     let modifiedPositions = JSON.parse(JSON.stringify(prevState.chessBoard));
     if (prevState.selectedTile !== null) {
+      // remove the piece from original position
       modifiedPositions[prevState.selectedTile.x][
         prevState.selectedTile.y
       ].pieceColor = null;
@@ -213,7 +208,7 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
         prevState.selectedTile.y
       ].pieceName = null;
     }
-    modifiedPositions[currPos.x][currPos.y].pieceColor =
+    modifiedPositions[currPos.x][currPos.y].pieceColor = // update piece info in the selected tile
       prevState.selectedTile?.pieceColor === undefined
         ? null
         : prevState.selectedTile.pieceColor;
@@ -221,12 +216,46 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
       prevState.selectedTile?.pieceName === undefined
         ? null
         : prevState.selectedTile.pieceName;
-    let allMoves = JSON.parse(JSON.stringify(prevState.allMoves));
+    let allMoves: MoveInfo[] = JSON.parse(JSON.stringify(prevState.allMoves));
+    let startPos: Position | null =
+      prevState.selectedTile !== null
+        ? { x: prevState.selectedTile.x, y: prevState.selectedTile.y }
+        : null;
+
+    //enpassant check
+    if (prevState.selectedTile?.pieceName === "PAWN") {
+      let pawnClass: ChessPiece = prevState.isWhiteTurn
+        ? pieceNameToClassMapWhite["PAWN"]
+        : pieceNameToClassMapBlack["PAWN"];
+      if (
+        pawnClass.isEnPassant !== undefined &&
+        pawnClass.isEnPassant(
+          {
+            x: prevState.selectedTile.x,
+            y: prevState.selectedTile.y,
+          } as Position,
+          currPos,
+          prevState.allMoves[prevState.moveNumber - 1]
+        )
+      ) {
+        capturedPiece = "PAWN";
+        if (prevState.allMoves[prevState.moveNumber - 1].endPos !== null) {
+          let capturedPos: any =
+            prevState.allMoves[prevState.moveNumber - 1].endPos;
+          prevState.chessBoard[capturedPos.x][capturedPos.y].pieceColor = null;
+          prevState.chessBoard[capturedPos.x][capturedPos.y].pieceName = null;
+        }
+      }
+    }
     allMoves.push({
       isWhiteTurn: prevState.isWhiteTurn,
       endPos: currPos,
       pieceCaptured: capturedPiece,
-      pieceName: prevState.selectedTile?.pieceName,
+      pieceName:
+        prevState.selectedTile?.pieceName === undefined
+          ? null
+          : prevState.selectedTile.pieceName,
+      startPos: startPos,
     });
     let output = {
       ...prevState,

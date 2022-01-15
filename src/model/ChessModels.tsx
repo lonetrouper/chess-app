@@ -17,8 +17,13 @@ export interface ChessPiece {
     x: number,
     y: number,
     boardState: SquareInfo[][],
-    prevMove?: any
+    prevMove?: MoveInfo
   ): Position[];
+  isEnPassant?(
+    startPos: Position,
+    currPos: Position,
+    prevMove: MoveInfo
+  ): boolean;
   getIcon: () => string;
 }
 
@@ -42,14 +47,14 @@ class Pawn implements ChessPiece {
     this.pieceColor = pieceColor;
     this.pieceName = "PAWN";
   }
-  availableMovements(x: number, y: number, boardState: SquareInfo[][]) {
+  availableMovements(
+    x: number,
+    y: number,
+    boardState: SquareInfo[][],
+    prevMove: MoveInfo
+  ) {
     let output = [];
     if (this.pieceColor === "BLACK") {
-      let front: Position = { x: x - 1, y: y };
-      let diagonals: Position[] = [
-        { x: x - 1, y: y + 1 },
-        { x: x - 1, y: y - 1 },
-      ];
       if (x - 1 >= 0 && boardState[x - 1][y].pieceName === null) {
         output.push({ x: x - 1, y: y });
       }
@@ -67,7 +72,7 @@ class Pawn implements ChessPiece {
         boardState[x - 1][y - 1].pieceName !== null &&
         boardState[x - 1][y - 1].pieceColor === "WHITE"
       ) {
-        output.push({ x: x - 1, y: y + 1 });
+        output.push({ x: x - 1, y: y - 1 });
       }
       if (
         x === 6 &&
@@ -75,6 +80,13 @@ class Pawn implements ChessPiece {
         boardState[x - 2][y].pieceName === null
       ) {
         output.push({ x: x - 2, y });
+      }
+      // enPassant rule
+      if (this.isEnPassant({ x: x, y: y }, { x: x - 1, y: y - 1 }, prevMove)) {
+        output.push({ x: x - 1, y: y - 1 });
+      }
+      if (this.isEnPassant({ x: x, y: y }, { x: x - 1, y: y + 1 }, prevMove)) {
+        output.push({ x: x - 1, y: y + 1 });
       }
     } else {
       let front: Position = { x: x - 1, y: y };
@@ -108,11 +120,77 @@ class Pawn implements ChessPiece {
       ) {
         output.push({ x: x + 2, y });
       }
+      if (this.isEnPassant({ x: x, y: y }, { x: x + 1, y: y - 1 }, prevMove)) {
+        output.push({ x: x + 1, y: y - 1 });
+      }
+      if (this.isEnPassant({ x: x, y: y }, { x: x + 1, y: y + 1 }, prevMove)) {
+        output.push({ x: x + 1, y: y + 1 });
+      }
     }
     return output;
   }
   getIcon() {
     return getIconHelper(this.iconName, this.pieceColor);
+  }
+  isEnPassant(
+    startPos: Position,
+    currPos: Position,
+    prevMove: MoveInfo
+  ): boolean {
+    if (this.pieceColor === "WHITE") {
+      if (currPos.x - 1 === startPos.x && currPos.y + 1 === startPos.y) {
+        if (prevMove.pieceName !== null && prevMove.pieceName === "PAWN") {
+          if (
+            prevMove.endPos !== null &&
+            prevMove.startPos !== null &&
+            prevMove.endPos.x === startPos.x &&
+            startPos.y - prevMove.endPos.y === 1 &&
+            prevMove.startPos.x - prevMove.endPos.x === 2
+          ) {
+            return true;
+          }
+        }
+      } else if (currPos.x - 1 === startPos.x && currPos.y - 1 === startPos.y) {
+        if (prevMove.pieceName !== null && prevMove.pieceName === "PAWN") {
+          if (
+            prevMove.endPos !== null &&
+            prevMove.startPos !== null &&
+            prevMove.endPos.x === startPos.x &&
+            prevMove.endPos.y - startPos.y === 1 &&
+            prevMove.startPos.x - prevMove.endPos.x === 2
+          ) {
+            return true;
+          }
+        }
+      }
+    } else {
+      if (currPos.x + 1 === startPos.x && currPos.y + 1 === startPos.y) {
+        if (prevMove.pieceName !== null && prevMove.pieceName === "PAWN") {
+          if (
+            prevMove.endPos !== null &&
+            prevMove.startPos !== null &&
+            prevMove.endPos.x === startPos.x &&
+            startPos.y - prevMove.endPos.y === 1 &&
+            prevMove.endPos.x - prevMove.startPos.x === 2
+          ) {
+            return true;
+          }
+        }
+      } else if (currPos.x + 1 === startPos.x && currPos.y - 1 === startPos.y) {
+        if (prevMove.pieceName !== null && prevMove.pieceName === "PAWN") {
+          if (
+            prevMove.endPos !== null &&
+            prevMove.startPos !== null &&
+            prevMove.endPos.x === startPos.x &&
+            prevMove.endPos.y - startPos.y === 1 &&
+            prevMove.endPos.x - prevMove.startPos.x === 2
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 }
 
