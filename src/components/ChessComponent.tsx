@@ -15,6 +15,7 @@ import {
   SquareInfo,
 } from "../model/ChessModels";
 import { HashMap, HashSet } from "../model/CustomDataStructures";
+import { King } from "../model/King";
 interface ChessComponentProps {}
 
 export const enum ColorOptions {
@@ -25,14 +26,137 @@ export const enum ColorOptions {
   KING_CHECK_LIGHT,
 }
 
-interface moveState {
+const enum GameStates {
+  RUNNING,
+  WHITE,
+  BLACK,
+}
+
+export interface moveState {
   chessBoard: SquareInfo[][];
   availableMoves: Position[];
   isWhiteTurn: boolean;
   allMoves: MoveInfo[];
   moveNumber: number;
   selectedTile: SquareInfo | null;
+  whiteKingPos: Position;
+  blackKingPos: Position;
+  gameState: GameStates;
 }
+
+export const updateBoard = (
+  selectedTile: SquareInfo | null,
+  destinationPos: Position,
+  prevState: moveState
+) => {
+  let modifiedPositions = JSON.parse(JSON.stringify(prevState.chessBoard));
+  if (selectedTile !== null) {
+    // remove the piece from original position
+    modifiedPositions[selectedTile.x][selectedTile.y].pieceColor = null;
+    modifiedPositions[selectedTile.x][selectedTile.y].pieceName = null;
+  }
+  modifiedPositions[destinationPos.x][destinationPos.y].pieceColor = // update piece info in the selected tile
+    selectedTile?.pieceColor === undefined ? null : selectedTile.pieceColor;
+  modifiedPositions[destinationPos.x][destinationPos.y].pieceName =
+    selectedTile?.pieceName === undefined ? null : selectedTile.pieceName;
+
+  //enpassant check
+  if (prevState.selectedTile?.pieceName === "PAWN") {
+    let pawnClass: ChessPiece = prevState.isWhiteTurn
+      ? pieceNameToClassMapWhite["PAWN"]
+      : pieceNameToClassMapBlack["PAWN"];
+    if (
+      pawnClass.isEnPassant !== undefined &&
+      pawnClass.isEnPassant(
+        {
+          x: prevState.selectedTile.x,
+          y: prevState.selectedTile.y,
+        } as Position,
+        destinationPos,
+        prevState.allMoves[prevState.moveNumber - 1]
+      )
+    ) {
+      // capturedPiece = "PAWN";
+      if (prevState.allMoves[prevState.moveNumber - 1].endPos !== null) {
+        let capturedPos: any =
+          prevState.allMoves[prevState.moveNumber - 1].endPos;
+        prevState.chessBoard[capturedPos.x][capturedPos.y].pieceColor = null;
+        prevState.chessBoard[capturedPos.x][capturedPos.y].pieceName = null;
+      }
+    }
+  }
+  return modifiedPositions;
+};
+
+const getAvailableMovesHelper = (prevState: moveState, currPos: Position) => {
+  if (prevState.isWhiteTurn) {
+    let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
+    if (currSquare.pieceName !== null && currSquare.pieceColor === "WHITE") {
+      let pieceName: chessPieceNameType = currSquare.pieceName;
+      let possibleMoves: Position[];
+      if (pieceName === "PAWN") {
+        possibleMoves = pieceNameToClassMapWhite[pieceName].availableMovements(
+          currPos.x,
+          currPos.y,
+          prevState,
+          prevState.allMoves[prevState.moveNumber - 1]
+        );
+      } else {
+        possibleMoves = pieceNameToClassMapWhite[pieceName].availableMovements(
+          currPos.x,
+          currPos.y,
+          prevState
+        );
+      }
+      return possibleMoves;
+    } else {
+      return [];
+    }
+  } else {
+    let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
+    if (currSquare.pieceName !== null && currSquare.pieceColor === "BLACK") {
+      let pieceName: chessPieceNameType = currSquare.pieceName;
+      let possibleMoves: Position[];
+      if (pieceName === "PAWN") {
+        possibleMoves = pieceNameToClassMapBlack[pieceName].availableMovements(
+          currPos.x,
+          currPos.y,
+          prevState,
+          prevState.allMoves[prevState.moveNumber - 1]
+        );
+      } else {
+        possibleMoves = pieceNameToClassMapBlack[pieceName].availableMovements(
+          currPos.x,
+          currPos.y,
+          prevState
+        );
+      }
+
+      return possibleMoves;
+    } else {
+      return [];
+    }
+  }
+};
+
+const movesToStopCheck = (prevState: moveState): Position[] => {
+  let output: Position[] = [];
+  for (let i of prevState.chessBoard) {
+    for (let j of i) {
+      output.push(
+        ...getAvailableMovesHelper(prevState, {
+          x: j.x,
+          y: j.y,
+        } as Position)
+      );
+      if (output.length > 0) {
+        break;
+      }
+    }
+  }
+  console.log("checkmate");
+  return output;
+};
 const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
   const [moveState, setMoveState] = useState<moveState>({
     chessBoard: resetBoard(),
@@ -41,6 +165,9 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
     allMoves: [createEmptyMove()],
     moveNumber: 1,
     selectedTile: null,
+    whiteKingPos: { x: 0, y: 3 } as Position,
+    blackKingPos: { x: 7, y: 3 } as Position,
+    gameState: GameStates.RUNNING,
   });
 
   const getTile = (
@@ -111,57 +238,6 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
     return rowOutput;
   };
 
-  const getAvailableMovesHelper = (prevState: moveState, currPos: Position) => {
-    if (prevState.isWhiteTurn) {
-      let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
-      if (currSquare.pieceName !== null && currSquare.pieceColor === "WHITE") {
-        let pieceName: chessPieceNameType = currSquare.pieceName;
-        let possibleMoves: Position[];
-        if (pieceName === "PAWN") {
-          possibleMoves = pieceNameToClassMapWhite[
-            pieceName
-          ].availableMovements(
-            currPos.x,
-            currPos.y,
-            prevState.chessBoard,
-            prevState.allMoves[prevState.moveNumber - 1]
-          );
-        } else {
-          possibleMoves = pieceNameToClassMapWhite[
-            pieceName
-          ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
-        }
-        return possibleMoves;
-      } else {
-        return [];
-      }
-    } else {
-      let currSquare: SquareInfo = prevState.chessBoard[currPos.x][currPos.y];
-      if (currSquare.pieceName !== null && currSquare.pieceColor === "BLACK") {
-        let pieceName: chessPieceNameType = currSquare.pieceName;
-        let possibleMoves: Position[];
-        if (pieceName === "PAWN") {
-          possibleMoves = pieceNameToClassMapBlack[
-            pieceName
-          ].availableMovements(
-            currPos.x,
-            currPos.y,
-            prevState.chessBoard,
-            prevState.allMoves[prevState.moveNumber - 1]
-          );
-        } else {
-          possibleMoves = pieceNameToClassMapBlack[
-            pieceName
-          ].availableMovements(currPos.x, currPos.y, prevState.chessBoard);
-        }
-
-        return possibleMoves;
-      } else {
-        return [];
-      }
-    }
-  };
-
   const currPosInAvailableMoves = (prevState: moveState, currPos: Position) => {
     for (let pos of moveState.availableMoves) {
       if (pos.x === currPos.x && pos.y === currPos.y) {
@@ -197,32 +273,6 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
     if (currSquare.pieceColor !== null && currSquare.pieceName !== null) {
       capturedPiece = currSquare.pieceName;
     }
-
-    let modifiedPositions = JSON.parse(JSON.stringify(prevState.chessBoard));
-    if (prevState.selectedTile !== null) {
-      // remove the piece from original position
-      modifiedPositions[prevState.selectedTile.x][
-        prevState.selectedTile.y
-      ].pieceColor = null;
-      modifiedPositions[prevState.selectedTile.x][
-        prevState.selectedTile.y
-      ].pieceName = null;
-    }
-    modifiedPositions[currPos.x][currPos.y].pieceColor = // update piece info in the selected tile
-      prevState.selectedTile?.pieceColor === undefined
-        ? null
-        : prevState.selectedTile.pieceColor;
-    modifiedPositions[currPos.x][currPos.y].pieceName =
-      prevState.selectedTile?.pieceName === undefined
-        ? null
-        : prevState.selectedTile.pieceName;
-    let allMoves: MoveInfo[] = JSON.parse(JSON.stringify(prevState.allMoves));
-    let startPos: Position | null =
-      prevState.selectedTile !== null
-        ? { x: prevState.selectedTile.x, y: prevState.selectedTile.y }
-        : null;
-
-    //enpassant check
     if (prevState.selectedTile?.pieceName === "PAWN") {
       let pawnClass: ChessPiece = prevState.isWhiteTurn
         ? pieceNameToClassMapWhite["PAWN"]
@@ -239,14 +289,27 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
         )
       ) {
         capturedPiece = "PAWN";
-        if (prevState.allMoves[prevState.moveNumber - 1].endPos !== null) {
-          let capturedPos: any =
-            prevState.allMoves[prevState.moveNumber - 1].endPos;
-          prevState.chessBoard[capturedPos.x][capturedPos.y].pieceColor = null;
-          prevState.chessBoard[capturedPos.x][capturedPos.y].pieceName = null;
-        }
       }
     }
+    let allMoves: MoveInfo[] = JSON.parse(JSON.stringify(prevState.allMoves));
+    let startPos: Position | null =
+      prevState.selectedTile !== null
+        ? { x: prevState.selectedTile.x, y: prevState.selectedTile.y }
+        : null;
+    let blackKingPos = prevState.blackKingPos;
+    let whiteKingPos = prevState.whiteKingPos;
+    if (prevState.selectedTile?.pieceName === "KING") {
+      if (prevState.isWhiteTurn) {
+        whiteKingPos = currPos;
+      } else {
+        blackKingPos = currPos;
+      }
+    }
+    let modifiedPositions = updateBoard(
+      prevState.selectedTile,
+      currPos,
+      prevState
+    );
     allMoves.push({
       isWhiteTurn: prevState.isWhiteTurn,
       endPos: currPos,
@@ -265,7 +328,28 @@ const ChessComponent: FunctionComponent<ChessComponentProps> = () => {
       moveNumber: prevState.moveNumber + 1,
       selectedTile: null,
       chessBoard: modifiedPositions,
+      blackKingPos: blackKingPos,
+      whiteKingPos: whiteKingPos,
     } as moveState;
+    let gameState: GameStates = prevState.gameState;
+    if (prevState.isWhiteTurn) {
+      let king: King = new King("BLACK");
+      if (
+        king.isKingCheck(output.blackKingPos, modifiedPositions).length > 0 &&
+        movesToStopCheck(output).length === 0
+      ) {
+        gameState = GameStates.WHITE;
+      }
+    } else {
+      let king: King = new King("WHITE");
+      if (
+        king.isKingCheck(output.whiteKingPos, modifiedPositions).length > 0 &&
+        movesToStopCheck(output).length === 0
+      ) {
+        gameState = GameStates.BLACK;
+      }
+    }
+    output = { ...output, gameState: gameState };
     return output;
   };
 
