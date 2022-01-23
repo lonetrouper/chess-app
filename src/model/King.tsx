@@ -1,4 +1,4 @@
-import { moveState } from "../components/ChessComponent";
+import { moveState, updateBoard } from "../components/ChessComponent";
 import { Bishop } from "./Bishop";
 import {
   allPieceColorType,
@@ -15,7 +15,7 @@ import { Rook } from "./Rook";
 
 export class King implements ChessPiece {
   pieceName: chessPieceNameType;
-  iconName = "fas fa-chess-king fa-2x";
+  iconName = "fas fa-chess-king fa-3x";
   pieceColor: allPieceColorType;
   constructor(pieceColor: allPieceColorType) {
     this.pieceColor = pieceColor;
@@ -37,18 +37,204 @@ export class King implements ChessPiece {
         ) {
           let newPos: Position = { x: x + directions[i], y: y + directions[j] };
           if (
-            (boardState.chessBoard[newPos.x][newPos.y] === null ||
-              boardState.chessBoard[newPos.x][newPos.y].pieceColor !==
-                this.pieceColor) &&
-            this.isKingCheck(newPos, boardState.chessBoard).length === 0
+            boardState.chessBoard[newPos.x][newPos.y] === null ||
+            boardState.chessBoard[newPos.x][newPos.y].pieceColor !==
+              this.pieceColor
           ) {
             output.push(newPos);
           }
         }
       }
     }
-    return output;
+    let modifiedOutput: Position[] = [];
+    for (let i of output) {
+      let modifiedBoard: SquareInfo[][] = updateBoard(
+        { x: x, y: y, pieceColor: this.pieceColor, pieceName: "KING" },
+        i,
+        boardState
+      );
+      if (this.isKingCheck(i, modifiedBoard).length === 0) {
+        modifiedOutput.push(i);
+      }
+    }
+    modifiedOutput.push(...this.getCastlingMoves(boardState));
+    return modifiedOutput;
   }
+  getCastlingMoves = (prevState: moveState): Position[] => {
+    let output: Position[] = [];
+    if (this.pieceColor === "WHITE") {
+      if (!prevState.whiteKingHasMoved && !prevState.leftWhiteRookHasMoved) {
+        if (
+          prevState.chessBoard[0][4].pieceName === null &&
+          prevState.chessBoard[0][5].pieceName === null &&
+          prevState.chessBoard[0][6].pieceName === null
+        ) {
+          let kingPos: Position = prevState.whiteKingPos;
+          let modifiedBoard: SquareInfo[][] = updateBoard(
+            {
+              ...kingPos,
+              pieceColor: "WHITE",
+              pieceName: "KING",
+            } as SquareInfo,
+            { x: kingPos.x, y: kingPos.y + 1 } as Position,
+            prevState
+          );
+          let checks: Position[] = this.isKingCheck(
+            { x: kingPos.x, y: kingPos.y + 1 },
+            modifiedBoard
+          );
+          modifiedBoard = updateBoard(
+            { ...kingPos, pieceColor: "WHITE", pieceName: "KING" },
+            { x: kingPos.x, y: kingPos.y + 2 },
+            prevState
+          );
+          checks.push(
+            ...this.isKingCheck(
+              { x: kingPos.x, y: kingPos.y + 2 },
+              modifiedBoard
+            )
+          );
+          modifiedBoard = updateBoard(
+            { ...kingPos, pieceColor: "WHITE", pieceName: "KING" },
+            { x: kingPos.x, y: kingPos.y + 3 },
+            prevState
+          );
+          checks.push(
+            ...this.isKingCheck(
+              { x: kingPos.x, y: kingPos.y + 3 },
+              modifiedBoard
+            )
+          );
+          if (checks.length === 0) {
+            output.push({ x: 0, y: 5 });
+          }
+        }
+      }
+      if (!prevState.whiteKingHasMoved && !prevState.rightWhiteRookHasMoved) {
+        console.log("inside else if");
+        if (
+          prevState.chessBoard[0][1].pieceName === null &&
+          prevState.chessBoard[0][2].pieceName === null
+        ) {
+          let kingPos: Position = prevState.whiteKingPos;
+          let modifiedBoard: SquareInfo[][] = updateBoard(
+            {
+              ...kingPos,
+              pieceColor: "WHITE",
+              pieceName: "KING",
+            } as SquareInfo,
+            { x: kingPos.x, y: kingPos.y - 1 } as Position,
+            prevState
+          );
+          let checks: Position[] = this.isKingCheck(
+            { x: kingPos.x, y: kingPos.y - 1 },
+            modifiedBoard
+          );
+          modifiedBoard = updateBoard(
+            { ...kingPos, pieceColor: "WHITE", pieceName: "KING" },
+            { x: kingPos.x, y: kingPos.y - 2 },
+            prevState
+          );
+          checks.push(
+            ...this.isKingCheck(
+              { x: kingPos.x, y: kingPos.y - 2 },
+              modifiedBoard
+            )
+          );
+          console.log("castling checks", checks);
+          if (checks.length === 0) {
+            output.push({ x: 0, y: 1 });
+          }
+        }
+      }
+    } else {
+      if (!prevState.blackKingHasMoved && !prevState.rightBlackRookHasMoved) {
+        if (
+          prevState.chessBoard[7][4].pieceName === null &&
+          prevState.chessBoard[7][5].pieceName === null &&
+          prevState.chessBoard[7][6].pieceName === null
+        ) {
+          let kingPos: Position = prevState.blackKingPos;
+          let modifiedBoard: SquareInfo[][] = updateBoard(
+            {
+              ...kingPos,
+              pieceColor: "BLACK",
+              pieceName: "KING",
+            } as SquareInfo,
+            { x: kingPos.x, y: kingPos.y + 1 } as Position,
+            prevState
+          );
+          let checks: Position[] = this.isKingCheck(
+            { x: kingPos.x, y: kingPos.y + 1 },
+            modifiedBoard
+          );
+          modifiedBoard = updateBoard(
+            { ...kingPos, pieceColor: "BLACK", pieceName: "KING" },
+            { x: kingPos.x, y: kingPos.y + 2 },
+            prevState
+          );
+          checks.push(
+            ...this.isKingCheck(
+              { x: kingPos.x, y: kingPos.y + 2 },
+              modifiedBoard
+            )
+          );
+          modifiedBoard = updateBoard(
+            { ...kingPos, pieceColor: "BLACK", pieceName: "KING" },
+            { x: kingPos.x, y: kingPos.y + 3 },
+            prevState
+          );
+          checks.push(
+            ...this.isKingCheck(
+              { x: kingPos.x, y: kingPos.y + 3 },
+              modifiedBoard
+            )
+          );
+          if (checks.length === 0) {
+            output.push({ x: 7, y: 5 });
+          }
+        }
+      }
+      if (!prevState.blackKingHasMoved && !prevState.leftBlackRookHasMoved) {
+        if (
+          prevState.chessBoard[7][1].pieceName === null &&
+          prevState.chessBoard[7][2].pieceName === null
+        ) {
+          let kingPos: Position = prevState.blackKingPos;
+          let modifiedBoard: SquareInfo[][] = updateBoard(
+            {
+              ...kingPos,
+              pieceColor: "BLACK",
+              pieceName: "KING",
+            } as SquareInfo,
+            { x: kingPos.x, y: kingPos.y - 1 } as Position,
+            prevState
+          );
+          let checks: Position[] = this.isKingCheck(
+            { x: kingPos.x, y: kingPos.y - 1 },
+            modifiedBoard
+          );
+          modifiedBoard = updateBoard(
+            { ...kingPos, pieceColor: "BLACK", pieceName: "KING" },
+            { x: kingPos.x, y: kingPos.y - 2 },
+            prevState
+          );
+          checks.push(
+            ...this.isKingCheck(
+              { x: kingPos.x, y: kingPos.y - 2 },
+              modifiedBoard
+            )
+          );
+          console.log("castling checks", checks);
+          if (checks.length === 0) {
+            output.push({ x: 7, y: 1 });
+          }
+        }
+      }
+    }
+
+    return output;
+  };
   isKingCheck = (
     kingPos: Position,
     boardState: SquareInfo[][]
@@ -59,7 +245,6 @@ export class King implements ChessPiece {
     output.push(...this.bishopAndQueenChecks(kingPos, boardState));
     output.push(...this.knightChecks(kingPos, boardState));
     output.push(...this.opponentKingCheck(kingPos, boardState));
-
     return output;
   };
   pawnChecks(kingPos: Position, boardState: SquareInfo[][]) {
@@ -118,65 +303,158 @@ export class King implements ChessPiece {
     let currX = kingPos.x - 1;
     let currY = kingPos.y;
     let output: SquareInfo[] = [];
-    for (let i = 0; i < 8; i++) {
-      if (i === kingPos.x) continue;
+    let xleft = kingPos.x - 1;
+    let xright = kingPos.x + 1;
+    let yleft = kingPos.y - 1;
+    let yright = kingPos.y + 1;
+    while (xleft >= 0) {
       if (
-        boardState[i][kingPos.y].pieceColor !== this.pieceColor &&
-        boardState[i][kingPos.y].pieceName === "ROOK"
+        (boardState[xleft][kingPos.y].pieceName === "ROOK" ||
+          boardState[xleft][kingPos.y].pieceName === "QUEEN") &&
+        boardState[xleft][kingPos.y].pieceColor !== this.pieceColor
       ) {
-        output.push(boardState[i][kingPos.y]);
-      }
-    }
-    while (currX >= 0) {
-      if (boardState[currX][currY].pieceColor === this.pieceColor) break;
-      if (
-        (boardState[currX][currY].pieceName === "ROOK" ||
-          boardState[currX][currY].pieceName === "QUEEN") &&
-        boardState[currX][currY].pieceColor !== this.pieceColor
+        output.push(boardState[xleft][kingPos.y]);
+        break;
+      } else if (
+        boardState[xleft][kingPos.y].pieceColor !== null &&
+        boardState[xleft][kingPos.y].pieceName !== null
       ) {
-        output.push(boardState[currX][currY]);
         break;
       }
-      currX--;
+      xleft--;
     }
-    currX = kingPos.x + 1;
-    while (currX < 8) {
-      if (boardState[currX][currY].pieceColor === this.pieceColor) break;
+    while (xright < 8) {
       if (
-        (boardState[currX][currY].pieceName === "ROOK" ||
-          boardState[currX][currY].pieceName === "QUEEN") &&
-        boardState[currX][currY].pieceColor !== this.pieceColor
+        (boardState[xright][kingPos.y].pieceName === "ROOK" ||
+          boardState[xright][kingPos.y].pieceName === "QUEEN") &&
+        boardState[xright][kingPos.y].pieceColor !== this.pieceColor
       ) {
-        output.push(boardState[currX][currY]);
+        output.push(boardState[xright][kingPos.y]);
+        break;
+      } else if (
+        boardState[xright][kingPos.y].pieceColor !== null &&
+        boardState[xright][kingPos.y].pieceName !== null
+      ) {
         break;
       }
-      currX++;
+      xright++;
+    }
+    while (yleft >= 0) {
+      if (
+        (boardState[kingPos.x][yleft].pieceName === "ROOK" ||
+          boardState[kingPos.x][yleft].pieceName === "QUEEN") &&
+        boardState[kingPos.x][yleft].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[kingPos.x][yleft]);
+        break;
+      } else if (
+        boardState[kingPos.x][yleft].pieceColor !== null &&
+        boardState[kingPos.x][yleft].pieceName !== null
+      ) {
+        break;
+      }
+      yleft--;
+    }
+    while (yright < 8) {
+      if (boardState[kingPos.x][yright].pieceColor === this.pieceColor) break;
+      else if (
+        (boardState[kingPos.x][yright].pieceName === "ROOK" ||
+          boardState[kingPos.x][yright].pieceName === "QUEEN") &&
+        boardState[kingPos.x][yright].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[kingPos.x][yright]);
+        break;
+      }
+      if (
+        (boardState[kingPos.x][yright].pieceName === "ROOK" ||
+          boardState[kingPos.x][yright].pieceName === "QUEEN") &&
+        boardState[kingPos.x][yright].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[kingPos.x][yright]);
+        break;
+      } else if (
+        boardState[kingPos.x][yright].pieceColor !== null &&
+        boardState[kingPos.x][yright].pieceName !== null
+      ) {
+        break;
+      }
+      yright++;
     }
     return output;
   }
   bishopAndQueenChecks(kingPos: Position, boardState: SquareInfo[][]) {
     let output: SquareInfo[] = [];
-    let currX;
-    let currY;
-    let diagonals = [1, -1];
-    for (let i of diagonals) {
-      for (let j of diagonals) {
-        currX = kingPos.x + i;
-        currY = kingPos.y + j;
-        while (currX >= 0 && currX < 8 && currY >= 0 && currY < 8) {
-          if (boardState[currX][currY].pieceColor === this.pieceColor) break;
-          if (
-            (boardState[currX][currY].pieceName === "BISHOP" ||
-              boardState[currX][currY].pieceName === "QUEEN") &&
-            boardState[currX][currY].pieceColor !== this.pieceColor
-          ) {
-            output.push(boardState[currX][currY]);
-            break;
-          }
-          currX += i;
-          currY += j;
-        }
-      }
+    let currX = kingPos.x + 1;
+    let currY = kingPos.y + 1;
+    while (currX < 8 && currY < 8) {
+      if (
+        (boardState[currX][currY].pieceName === "BISHOP" ||
+          boardState[currX][currY].pieceName === "QUEEN") &&
+        boardState[currX][currY].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[currX][currY]);
+        break;
+      } else if (
+        boardState[currX][currY].pieceColor !== null &&
+        boardState[currX][currY].pieceName !== null
+      )
+        break;
+      currX++;
+      currY++;
+    }
+    currX = kingPos.x + 1;
+    currY = kingPos.y - 1;
+    while (currX < 8 && currY >= 0) {
+      if (
+        (boardState[currX][currY].pieceName === "BISHOP" ||
+          boardState[currX][currY].pieceName === "QUEEN") &&
+        boardState[currX][currY].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[currX][currY]);
+        break;
+      } else if (
+        boardState[currX][currY].pieceColor !== null &&
+        boardState[currX][currY].pieceName !== null
+      )
+        break;
+      currX++;
+      currY--;
+    }
+    currX = kingPos.x - 1;
+    currY = kingPos.y + 1;
+    while (currX >= 0 && currY < 8) {
+      if (
+        (boardState[currX][currY].pieceName === "BISHOP" ||
+          boardState[currX][currY].pieceName === "QUEEN") &&
+        boardState[currX][currY].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[currX][currY]);
+        break;
+      } else if (
+        boardState[currX][currY].pieceColor !== null &&
+        boardState[currX][currY].pieceName !== null
+      )
+        break;
+      currX--;
+      currY++;
+    }
+    currX = kingPos.x - 1;
+    currY = kingPos.y - 1;
+    while (currX >= 0 && currY >= 0) {
+      if (
+        (boardState[currX][currY].pieceName === "BISHOP" ||
+          boardState[currX][currY].pieceName === "QUEEN") &&
+        boardState[currX][currY].pieceColor !== this.pieceColor
+      ) {
+        output.push(boardState[currX][currY]);
+        break;
+      } else if (
+        boardState[currX][currY].pieceColor !== null &&
+        boardState[currX][currY].pieceName !== null
+      )
+        break;
+      currX--;
+      currY--;
     }
     return output;
   }

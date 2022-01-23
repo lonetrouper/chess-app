@@ -14,7 +14,7 @@ import { Rook } from "./Rook";
 
 export class Queen implements ChessPiece {
   pieceName: chessPieceNameType;
-  iconName = "fas fa-chess-queen fa-2x";
+  iconName = "fas fa-chess-queen fa-3x";
   pieceColor: allPieceColorType;
   rook: ChessPiece;
   bishop: ChessPiece;

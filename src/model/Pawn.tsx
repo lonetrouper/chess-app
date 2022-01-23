@@ -12,7 +12,7 @@ import { King } from "./King";
 
 export class Pawn implements ChessPiece {
   pieceName: chessPieceNameType;
-  iconName: string = "fas fa-chess-pawn fa-2x piece-style";
+  iconName: string = "fas fa-chess-pawn fa-3x piece-style";
   pieceColor: allPieceColorType;
   king: King;
   constructor(pieceColor: allPieceColorType) {
@@ -54,7 +54,8 @@ export class Pawn implements ChessPiece {
       if (
         x === 6 &&
         boardState.chessBoard[x - 2][y].pieceColor === null &&
-        boardState.chessBoard[x - 2][y].pieceName === null
+        boardState.chessBoard[x - 2][y].pieceName === null &&
+        boardState.chessBoard[x - 1][y].pieceName === null
       ) {
         output.push({ x: x - 2, y });
       }
@@ -93,7 +94,8 @@ export class Pawn implements ChessPiece {
       if (
         x === 1 &&
         boardState.chessBoard[x + 2][y].pieceColor === null &&
-        boardState.chessBoard[x + 2][y].pieceName === null
+        boardState.chessBoard[x + 2][y].pieceName === null &&
+        boardState.chessBoard[x + 1][y].pieceName === null
       ) {
         output.push({ x: x + 2, y });
       }

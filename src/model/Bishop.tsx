@@ -12,7 +12,7 @@ import { King } from "./King";
 
 export class Bishop implements ChessPiece {
   pieceName: chessPieceNameType;
-  iconName = "fas fa-chess-bishop fa-2x";
+  iconName = "fas fa-chess-bishop fa-3x";
   pieceColor: allPieceColorType;
   king: King;
   constructor(pieceColor: allPieceColorType) {

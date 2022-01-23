@@ -11,7 +11,7 @@ import { King } from "./King";
 
 export class Knight implements ChessPiece {
   pieceName: chessPieceNameType;
-  iconName = "fas fa-chess-knight fa-2x";
+  iconName = "fas fa-chess-knight fa-3x";
   pieceColor: allPieceColorType;
   king: King;
   constructor(pieceColor: allPieceColorType) {

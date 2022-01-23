@@ -16,6 +16,8 @@ export interface ChessTileProps {
   pieceColor: allPieceColorType | null;
   tileBackgroundColor: ColorOptions;
   clickHandler: (pos: Position) => void;
+  isPromotion: boolean;
+  promotionSquare: Position | null;
 }
 
 const Tile = styled(Paper)(() => {
@@ -48,6 +50,41 @@ const ChessTile: FunctionComponent<ChessTileProps> = (
     pieceColor: input.pieceColor,
     pieceName: input.pieceName,
   };
+  if (
+    input.isPromotion &&
+    input.promotionSquare !== null &&
+    input.promotionSquare.x === 7 &&
+    input.y === input.promotionSquare.y
+  ) {
+    chessIconProps.pieceColor = "WHITE";
+    let difference = input.promotionSquare.x - input.x;
+    if (difference === 0) {
+      chessIconProps.pieceName = "QUEEN";
+    } else if (difference === 1) {
+      chessIconProps.pieceName = "ROOK";
+    } else if (difference === 2) {
+      chessIconProps.pieceName = "BISHOP";
+    } else if (difference === 3) {
+      chessIconProps.pieceName = "KNIGHT";
+    }
+  } else if (
+    input.isPromotion &&
+    input.promotionSquare !== null &&
+    input.promotionSquare.x === 0 &&
+    input.y === input.promotionSquare.y
+  ) {
+    chessIconProps.pieceColor = "BLACK";
+    let difference = input.x - input.promotionSquare.x;
+    if (difference === 0) {
+      chessIconProps.pieceName = "QUEEN";
+    } else if (difference === 1) {
+      chessIconProps.pieceName = "ROOK";
+    } else if (difference === 2) {
+      chessIconProps.pieceName = "BISHOP";
+    } else if (difference === 3) {
+      chessIconProps.pieceName = "KNIGHT";
+    }
+  }
   return (
     <Tile
       sx={{ background: getColor(input.tileBackgroundColor) }}
